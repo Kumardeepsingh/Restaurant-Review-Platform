@@ -19,15 +19,14 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
-import { useAuth } from "react-oidc-context";
 import { ApiService } from "./apiService";
 
 export class AxiosApiService implements ApiService {
   private api: AxiosInstance;
-  private auth: ReturnType<typeof useAuth>;
+  private getAccessToken: () => string | undefined;
 
-  constructor(baseUrl: string, auth: ReturnType<typeof useAuth>) {
-    this.auth = auth;
+  constructor(baseUrl: string, getAccessToken: () => string | undefined) {
+    this.getAccessToken = getAccessToken;
     this.api = axios.create({
       baseURL: baseUrl,
       headers: {
@@ -44,25 +43,10 @@ export class AxiosApiService implements ApiService {
     this.api.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
         const headers = new AxiosHeaders(config.headers);
-
-        if (this.auth.isAuthenticated) {
-          // Check if token needs refresh
-          const expiresAt = this.auth.user?.expires_at;
-          const isExpiringSoon =
-            expiresAt && expiresAt * 1000 - 60000 < Date.now();
-
-          if (isExpiringSoon) {
-            try {
-              await this.auth.signinSilent();
-            } catch (error) {
-              console.error("Token refresh failed:", error);
-              // Continue with existing token if refresh fails
-            }
-          }
-
-          headers.setAuthorization(`Bearer ${this.auth.user?.access_token}`);
+        const token = this.getAccessToken();
+        if (token) {
+          headers.setAuthorization(`Bearer ${token}`);
         }
-
         config.headers = headers;
         return config;
       },
@@ -74,23 +58,14 @@ export class AxiosApiService implements ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          try {
-            await this.auth.signinSilent();
-            // Retry the original request
-            if (error.config) {
-              const headers = new AxiosHeaders(error.config.headers);
-              headers.setAuthorization(
-                `Bearer ${this.auth.user?.access_token}`,
-              );
-              error.config.headers = headers;
-              return this.api.request(error.config);
-            }
-          } catch (refreshError) {
-            // If silent refresh fails, redirect to login
-            await this.auth.signinRedirect();
-          }
+        const originalRequest = error.config as InternalAxiosRequestConfig & {
+          _retry?: boolean;
+        };
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
         }
+
         return Promise.reject(error);
       },
     );
@@ -129,9 +104,7 @@ export class AxiosApiService implements ApiService {
     await this.api.put(`/restaurants/${restaurantId}`, request);
   }
 
-  public async deleteRestaurant(
-    restaurantId: string,    
-  ): Promise<void> {
+  public async deleteRestaurant(restaurantId: string): Promise<void> {
     await this.api.delete(`/restaurants/${restaurantId}`);
   }
 

@@ -32,14 +32,16 @@ export function AppContextProvider({
         throw Error("Base URL not defined!");
       }
 
-      // Create new api service instance when auth changes
-      const axiosApiService = new AxiosApiService(baseUrl, auth);
+      const axiosApiService = new AxiosApiService(
+        baseUrl,
+        () => auth.user?.access_token
+      );
       setApiService(axiosApiService);
       setIsInitialized(true);
     } catch (error) {
       console.error("Failed to initialize services:", error);
     }
-  }, [auth]); // Add auth as a dependency
+  }, []); // empty — create once only
 
   return (
     <AppContext.Provider value={{ apiService, isInitialized }}>
