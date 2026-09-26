@@ -71,7 +71,6 @@ export class AxiosApiService implements ApiService {
     );
   }
 
-  // Restaurant endpoints implementation
   public async searchRestaurants(
     params: RestaurantSearchParams,
   ): Promise<PaginatedResponse<RestaurantSummary>> {
@@ -108,7 +107,6 @@ export class AxiosApiService implements ApiService {
     await this.api.delete(`/restaurants/${restaurantId}`);
   }
 
-  // Review endpoints implementation
   public async getRestaurantReviews(
     restaurantId: string,
     sort?: "datePosted,desc" | "datePosted,asc" | "rating,desc" | "rating,asc",
@@ -161,7 +159,6 @@ export class AxiosApiService implements ApiService {
     await this.api.delete(`/restaurants/${restaurantId}/reviews/${reviewId}`);
   }
 
-  // Photo endpoint implementation
   public async uploadPhoto(file: File, caption?: string): Promise<Photo> {
     const formData = new FormData();
     formData.append("file", file);

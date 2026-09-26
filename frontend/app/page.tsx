@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/pagination";
 
 export default function Home() {
-  const { apiService } = useAppContext();
+  const { apiService, isAuthenticated } = useAppContext();
 
   const [loading, setLoading] = useState(true);
   const [restaurants, setRestaurants] = useState<RestaurantSummary[]>([]);
@@ -112,12 +112,12 @@ export default function Home() {
       await searchRestaurants({});
     };
 
-    if (!apiService) {
+    if (!apiService || !isAuthenticated) {
       return;
     }
 
     doUseEffect();
-  }, [apiService]);
+  }, [apiService, isAuthenticated]);
 
   return (
     <div>

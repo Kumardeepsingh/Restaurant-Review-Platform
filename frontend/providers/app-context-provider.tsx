@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { ApiService } from "@/services/api/apiService";
 import { useAuth } from "react-oidc-context";
 import { AxiosApiService } from "@/services/api/axiosApiService";
@@ -8,6 +8,7 @@ import { AxiosApiService } from "@/services/api/axiosApiService";
 interface AppContextType {
   apiService: ApiService | null;
   isInitialized: boolean;
+  isAuthenticated: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -20,31 +21,29 @@ export function AppContextProvider({
   const [apiService, setApiService] = useState<ApiService | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const auth = useAuth();
+  const authRef = useRef(auth);
+  authRef.current = auth;
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
+    if (typeof window === "undefined") return;
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!baseUrl) {
-        throw Error("Base URL not defined!");
-      }
+      if (!baseUrl) throw Error("Base URL not defined!");
 
       const axiosApiService = new AxiosApiService(
         baseUrl,
-        () => auth.user?.access_token
+        () => authRef.current.user?.access_token
       );
       setApiService(axiosApiService);
       setIsInitialized(true);
     } catch (error) {
       console.error("Failed to initialize services:", error);
     }
-  }, []); // empty — create once only
+  }, []);
 
   return (
-    <AppContext.Provider value={{ apiService, isInitialized }}>
+    <AppContext.Provider value={{ apiService, isInitialized, isAuthenticated: auth.isAuthenticated }}>
       {children}
     </AppContext.Provider>
   );

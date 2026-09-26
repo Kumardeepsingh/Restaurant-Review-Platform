@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/providers/app-context-provider";
 import { CreateRestaurantRequest, Photo } from "@/domain/domain";
 import CreateRestaurantForm from "@/components/create-restaurant-form";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -35,6 +35,20 @@ type FormData = {
 };
 
 export default function CreateRestaurantPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[100vh] h-full flex items-center justify-center">
+          <p>Loading 🍝</p>
+        </div>
+      }
+    >
+      <UpdateRestaurantForm />
+    </Suspense>
+  );
+}
+
+function UpdateRestaurantForm() {
   const { apiService } = useAppContext();
   const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState<boolean>(true);
