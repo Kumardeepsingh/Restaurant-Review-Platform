@@ -9,6 +9,8 @@ import com.kumar.restaurant.repositories.RestaurantRepository;
 import com.kumar.restaurant.services.GeoLocationService;
 import com.kumar.restaurant.services.RestaurantService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 import org.springframework.stereotype.Service;
 
@@ -45,5 +47,26 @@ public class RestaurantServiceImpl implements RestaurantService {
                 .build();
 
         return restaurantRepository.save(restaurant);
+    }
+
+    @Override
+    public Page<Restaurant> searchRestaurants(
+            String query, Float minRating, Float latitude, Float longitude,
+            Float radius, Pageable pageable) {
+        if(null != minRating && (null == query || query.isEmpty())) {
+            return restaurantRepository.findByAverageRatingGreaterThanEqual(minRating, pageable);
+        }
+
+        Float searchMinRating = null == minRating ? 0f : minRating;
+
+        if(null != query && !query.trim().isEmpty()) {
+            return restaurantRepository.findByQueryAndMinRating(query, searchMinRating, pageable);
+        }
+
+        if(null != latitude && null != longitude && null != radius) {
+            return restaurantRepository.findByLocationNear(latitude, longitude, radius, pageable);
+        }
+
+        return restaurantRepository.findAll(pageable);
     }
 }
